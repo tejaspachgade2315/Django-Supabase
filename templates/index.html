@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager - Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .modal { display: none; }
+        .modal.active { display: flex; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <h1 class="text-3xl font-bold">📋 Task Manager</h1>
+            <p class="text-blue-100">Django + Supabase Demo Project</p>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-gray-500 text-sm font-medium">Total Tasks</h3>
+                <p class="text-3xl font-bold text-gray-800" id="total-tasks">0</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-gray-500 text-sm font-medium">Pending</h3>
+                <p class="text-3xl font-bold text-yellow-500" id="pending-tasks">0</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-gray-500 text-sm font-medium">In Progress</h3>
+                <p class="text-3xl font-bold text-blue-500" id="in-progress-tasks">0</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-gray-500 text-sm font-medium">Completed</h3>
+                <p class="text-3xl font-bold text-green-500" id="completed-tasks">0</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Task List -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-6 border-b flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-gray-800">Tasks</h2>
+                        <button onclick="openModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                            + Add Task
+                        </button>
+                    </div>
+                    <div id="task-list" class="divide-y">
+                        <!-- Tasks will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts & Weather -->
+            <div class="space-y-6">
+                <!-- Status Chart -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Status Distribution</h3>
+                    <canvas id="status-chart" height="200"></canvas>
+                </div>
+
+                <!-- Priority Chart -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Priority Distribution</h3>
+                    <canvas id="priority-chart" height="200"></canvas>
+                </div>
+
+                <!-- Weather Widget (Third-party API) -->
+                <div class="bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg shadow p-6 text-white">
+                    <h3 class="text-lg font-bold mb-4">🌤️ Weather API Demo</h3>
+                    <div class="flex items-center gap-2 mb-4">
+                        <input type="text" id="city-input" value="London" 
+                            class="flex-1 px-3 py-2 rounded text-gray-800" placeholder="Enter city">
+                        <button onclick="fetchWeather()" class="bg-white text-blue-600 px-4 py-2 rounded hover:bg-blue-50 transition">
+                            Get Weather
+                        </button>
+                    </div>
+                    <div id="weather-info">
+                        <p class="text-blue-100">Click to fetch weather data...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit Task Modal -->
+    <div id="task-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div class="p-6 border-b">
+                <h2 class="text-xl font-bold text-gray-800" id="modal-title">Add New Task</h2>
+            </div>
+            <form id="task-form" class="p-6 space-y-4">
+                <input type="hidden" id="task-id">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                    <input type="text" id="task-title" required
+                        class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea id="task-description" rows="3"
+                        class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                        <select id="task-priority"
+                            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select id="task-status"
+                            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="pending">Pending</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                    <input type="date" id="task-due-date"
+                        class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="flex justify-end gap-3 pt-4">
+                    <button type="button" onclick="closeModal()"
+                        class="px-4 py-2 border rounded-lg hover:bg-gray-50 transition">Cancel</button>
+                    <button type="submit"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">Save Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // API base URL
+        const API_BASE = '/api';
+        
+        // Chart instances
+        let statusChart, priorityChart;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTasks();
+            loadStats();
+            fetchWeather();
+            
+            // Form submit handler
+            document.getElementById('task-form').addEventListener('submit', handleFormSubmit);
+        });
+
+        // Load all tasks
+        async function loadTasks() {
+            try {
+                const response = await fetch(`${API_BASE}/tasks/`);
+                const tasks = await response.json();
+                renderTasks(tasks);
+            } catch (error) {
+                console.error('Error loading tasks:', error);
+            }
+        }
+
+        // Render task list
+        function renderTasks(tasks) {
+            const container = document.getElementById('task-list');
+            
+            if (tasks.length === 0) {
+                container.innerHTML = '<div class="p-6 text-center text-gray-500">No tasks yet. Add one to get started!</div>';
+                return;
+            }
+
+            container.innerHTML = tasks.map(task => `
+                <div class="p-4 hover:bg-gray-50 transition">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-medium text-gray-800">${escapeHtml(task.title)}</h3>
+                                <span class="px-2 py-0.5 text-xs rounded-full ${getPriorityClass(task.priority)}">
+                                    ${task.priority}
+                                </span>
+                                <span class="px-2 py-0.5 text-xs rounded-full ${getStatusClass(task.status)}">
+                                    ${task.status.replace('_', ' ')}
+                                </span>
+                            </div>
+                            ${task.description ? `<p class="text-sm text-gray-600 mt-1">${escapeHtml(task.description)}</p>` : ''}
+                            ${task.due_date ? `<p class="text-xs text-gray-400 mt-1">Due: ${task.due_date}</p>` : ''}
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="editTask(${task.id})" class="text-blue-600 hover:text-blue-800 text-sm">Edit</button>
+                            <button onclick="deleteTask(${task.id})" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Load statistics
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/stats/`);
+                const stats = await response.json();
+                
+                // Update stat cards
+                document.getElementById('total-tasks').textContent = stats.total_tasks;
+                document.getElementById('pending-tasks').textContent = stats.pending;
+                document.getElementById('in-progress-tasks').textContent = stats.in_progress;
+                document.getElementById('completed-tasks').textContent = stats.completed;
+                
+                // Update charts
+                updateCharts(stats);
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Update charts with stats data
+        function updateCharts(stats) {
+            // Status chart
+            const statusCtx = document.getElementById('status-chart').getContext('2d');
+            if (statusChart) statusChart.destroy();
+            statusChart = new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Pending', 'In Progress', 'Completed'],
+                    datasets: [{
+                        data: [stats.pending, stats.in_progress, stats.completed],
+                        backgroundColor: ['#EAB308', '#3B82F6', '#22C55E']
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' }}}
+            });
+
+            // Priority chart
+            const priorityCtx = document.getElementById('priority-chart').getContext('2d');
+            if (priorityChart) priorityChart.destroy();
+            priorityChart = new Chart(priorityCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['High', 'Medium', 'Low'],
+                    datasets: [{
+                        label: 'Tasks',
+                        data: [stats.high_priority, stats.medium_priority, stats.low_priority],
+                        backgroundColor: ['#EF4444', '#F59E0B', '#10B981']
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false }}}
+            });
+        }
+
+        // Fetch weather (Third-party API demo)
+        async function fetchWeather() {
+            const city = document.getElementById('city-input').value;
+            const infoDiv = document.getElementById('weather-info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/weather/?city=${encodeURIComponent(city)}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    infoDiv.innerHTML = `<p class="text-red-200">${data.error}</p>`;
+                    return;
+                }
+                
+                infoDiv.innerHTML = `
+                    <div class="text-4xl font-bold">${data.temperature}°C</div>
+                    <div class="text-lg capitalize">${data.description}</div>
+                    <div class="text-blue-100 text-sm mt-2">
+                        Humidity: ${data.humidity}% | Wind: ${data.wind_speed} m/s
+                    </div>
+                    ${data.is_demo ? '<div class="text-xs text-blue-200 mt-2">Demo mode - configure API key for real data</div>' : ''}
+                `;
+            } catch (error) {
+                infoDiv.innerHTML = '<p class="text-red-200">Failed to fetch weather</p>';
+            }
+        }
+
+        // Modal functions
+        function openModal(task = null) {
+            document.getElementById('task-modal').classList.add('active');
+            document.getElementById('modal-title').textContent = task ? 'Edit Task' : 'Add New Task';
+            
+            if (task) {
+                document.getElementById('task-id').value = task.id;
+                document.getElementById('task-title').value = task.title;
+                document.getElementById('task-description').value = task.description || '';
+                document.getElementById('task-priority').value = task.priority;
+                document.getElementById('task-status').value = task.status;
+                document.getElementById('task-due-date').value = task.due_date || '';
+            } else {
+                document.getElementById('task-form').reset();
+                document.getElementById('task-id').value = '';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('task-modal').classList.remove('active');
+        }
+
+        // Edit task
+        async function editTask(id) {
+            const response = await fetch(`${API_BASE}/tasks/${id}/`);
+            const task = await response.json();
+            openModal(task);
+        }
+
+        // Delete task
+        async function deleteTask(id) {
+            if (!confirm('Are you sure you want to delete this task?')) return;
+            
+            await fetch(`${API_BASE}/tasks/${id}/`, { method: 'DELETE' });
+            loadTasks();
+            loadStats();
+        }
+
+        // Handle form submit (Create/Update)
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            const id = document.getElementById('task-id').value;
+            const data = {
+                title: document.getElementById('task-title').value,
+                description: document.getElementById('task-description').value,
+                priority: document.getElementById('task-priority').value,
+                status: document.getElementById('task-status').value,
+                due_date: document.getElementById('task-due-date').value || null
+            };
+            
+            const url = id ? `${API_BASE}/tasks/${id}/` : `${API_BASE}/tasks/`;
+            const method = id ? 'PUT' : 'POST';
+            
+            await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            closeModal();
+            loadTasks();
+            loadStats();
+        }
+
+        // Helper functions
+        function getPriorityClass(priority) {
+            const classes = {
+                high: 'bg-red-100 text-red-800',
+                medium: 'bg-yellow-100 text-yellow-800',
+                low: 'bg-green-100 text-green-800'
+            };
+            return classes[priority] || '';
+        }
+
+        function getStatusClass(status) {
+            const classes = {
+                pending: 'bg-gray-100 text-gray-800',
+                in_progress: 'bg-blue-100 text-blue-800',
+                completed: 'bg-green-100 text-green-800'
+            };
+            return classes[status] || '';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
