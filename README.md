@@ -203,10 +203,3 @@ You can test the API using:
 | `ALLOWED_HOSTS` | Comma-separated hosts | No |
 | `OPENWEATHER_API_KEY` | Weather API key | No (demo mode) |
 
-## 📄 License
-
-MIT License - feel free to use this project for learning or as a starting point.
-
-## 👤 Author
-
-Built as a demo project for Full Stack Developer role assessment.

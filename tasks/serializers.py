@@ -1,28 +1,23 @@
+"""Task Serializers.
+
+The Tasks API is backed by Supabase (PostgREST), so we validate and serialize
+plain dictionaries rather than Django ORM model instances.
 """
-Task Serializers - Convert Task model instances to/from JSON.
-"""
+
 from rest_framework import serializers
-from .models import Task
 
 
-class TaskSerializer(serializers.ModelSerializer):
-    """
-    Serializer for Task model with all fields.
-    """
-    
-    class Meta:
-        model = Task
-        fields = [
-            'id',
-            'title',
-            'description',
-            'priority',
-            'status',
-            'due_date',
-            'created_at',
-            'updated_at',
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+class TaskSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    title = serializers.CharField(max_length=200)
+    description = serializers.CharField(allow_blank=True, required=False, default="")
+    priority = serializers.ChoiceField(choices=["low", "medium", "high"], required=False, default="medium")
+    status = serializers.ChoiceField(
+        choices=["pending", "in_progress", "completed"], required=False, default="pending"
+    )
+    due_date = serializers.DateField(allow_null=True, required=False)
+    created_at = serializers.DateTimeField(read_only=True)
+    updated_at = serializers.DateTimeField(read_only=True)
 
 
 class TaskStatsSerializer(serializers.Serializer):

@@ -68,12 +68,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# Database configuration
-# Uses DATABASE_URL environment variable
-# Supports PostgreSQL (Supabase) and SQLite
-DATABASE_URL = os.getenv('DATABASE_URL', f'sqlite:///{BASE_DIR / "db.sqlite3"}')
+# Database configuration (Django internal DB)
+#
+# NOTE: This project uses Supabase via HTTPS (PostgREST) for the Tasks API.
+# Direct Postgres connections (port 5432) are often blocked on some networks.
+#
+# Use DJANGO_DATABASE_URL for Django's own database (admin/auth/sessions, etc.).
+DJANGO_DATABASE_URL = os.getenv('DJANGO_DATABASE_URL', f'sqlite:///{BASE_DIR / "db.sqlite3"}')
 DATABASES = {
-    'default': dj_database_url.parse(DATABASE_URL)
+    'default': dj_database_url.parse(DJANGO_DATABASE_URL)
 }
 
 # Password validation
@@ -122,3 +125,8 @@ CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:8000'
 
 # External API Configuration
 OPENWEATHER_API_KEY = os.getenv('OPENWEATHER_API_KEY', '')
+
+# Supabase (HTTPS / PostgREST)
+SUPABASE_URL = os.getenv('SUPABASE_URL', '')
+SUPABASE_ANON_KEY = os.getenv('SUPABASE_ANON_KEY', '')
+SUPABASE_TASKS_TABLE = os.getenv('SUPABASE_TASKS_TABLE', 'tasks_task')
